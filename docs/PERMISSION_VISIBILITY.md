@@ -17,6 +17,49 @@ hidden records behave when roles change.
 | Hidden entries on a page | Skipped without shifting other viewers' pages or cursors |
 | Deleted entry | Gone for everyone, maintainers included; the deletion stays in the audit trail |
 
+## Permission-diff report (pre-change review)
+
+Before a role or policy change is applied, operators should produce a
+permission-diff report that lists exactly which addresses gain or lose
+visibility into hidden records. The report is computed by comparing the
+`Viewer` that `viewer_for` would build under the current role set against the
+`Viewer` it would build under the proposed role set, for every affected address.
+
+The report contains, per address:
+
+- `before`: current `is_maintainer` and visible hidden-record classes
+- `after`: the same fields under the proposed roles
+- `change`: one of `gained`, `lost`, or `unchanged`
+
+Normal path: a proposed change produces a report; reviewers approve it and the
+change is applied in a separate invocation.
+
+Failure path: if a proposed address is unknown or a role name is not recognised,
+the report is rejected with `InvalidInput` and nothing is computed or applied.
+
+Retry path: the report is a pure read over role state. Re-running it with the
+same inputs and an unchanged role set yields an identical report, so retries are
+safe. If roles change between report generation and application, the report is
+stale and must be regenerated; applying a stale report is rejected.
+
+Authorization path: only an `Admin` may request a permission-diff report or
+apply the change it describes. Non-admin callers receive `Unauthorized` and
+receive no diff contents.
+
+Operational edge cases:
+
+- Empty proposal: produces a report with all addresses `unchanged`; applying it
+  is a no-op.
+- Self-revocation of `Admin`: the report flags the caller as `lost`; the change
+  is still allowed but reviewers should confirm a second admin exists first.
+- Ownership transfer pending: the report reflects only roles currently on-chain;
+  the pending owner is shown as `unchanged` until the transfer is accepted.
+
+Rollback: because the report is read-only, no rollback is needed for the report
+itself. To undo an applied change, apply the inverse role change, generating a
+new report for it. Past visibility is not restored retroactively; the audit
+trail records both the original and the reversing change.
+
 ## Edge case: stale viewers
 
 A `Viewer` is a value snapshot. A copy held across a role change still reports

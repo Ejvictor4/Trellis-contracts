@@ -6,6 +6,12 @@ pub mod errors;
 pub mod storage;
 #[path = "../../../shared/src/history.rs"]
 pub mod history;
+#[path = "../../../shared/src/rollout_guard.rs"]
+pub mod rollout_guard;
+#[path = "../../../shared/src/ownership_history.rs"]
+pub mod ownership_history;
+#[path = "../../../shared/src/feature_flags.rs"]
+pub mod feature_flags;
 #[path = "../../../shared/src/auth.rs"]
 pub mod auth;
 #[path = "../../../shared/src/evidence.rs"]
@@ -36,6 +42,21 @@ pub mod resumable_repair;
 mod test_resumable_repair;
 #[path = "../../../shared/src/bounded_batch.rs"]
 pub mod bounded_batch;
+#[path = "../../../shared/src/bounded_cache.rs"]
+pub mod bounded_cache;
+#[path = "../../../shared/src/workflow_failure_injection.rs"]
+pub mod workflow_failure_injection;
+#[path = "../../../shared/src/user_facing_degraded_status.rs"]
+pub mod user_facing_degraded_status;
+#[path = "../../../shared/src/math.rs"]
+pub mod math;
+#[path = "../../../shared/src/time_window.rs"]
+pub mod time_window;
+#[path = "../../../shared/src/input_limits.rs"]
+pub mod input_limits;
+#[cfg(test)]
+#[path = "../../../shared/src/test_boundary_properties.rs"]
+mod test_boundary_properties;
 #[path = "../../../shared/src/init_rollback.rs"]
 pub mod init_rollback;
 #[cfg(test)]
@@ -48,3 +69,11 @@ pub mod compat;
 mod test_compat_fixtures;
 #[path = "../../../shared/src/config_audit.rs"]
 pub mod config_audit;
+#[path = "../../../shared/src/upgrade_compat_snapshot.rs"]
+pub mod upgrade_compat_snapshot;
+#[path = "../../../shared/src/event_pagination.rs"]
+pub mod event_pagination;
+#[path = "../../../shared/src/treasury_conservation.rs"]
+pub mod treasury_conservation;
+#[path = "../../../shared/src/auth_fingerprint.rs"]
+pub mod auth_fingerprint;

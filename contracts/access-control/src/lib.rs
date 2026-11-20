@@ -152,6 +152,7 @@ enum DataKey {
 
 pub const MAX_CAPABILITY_LIFETIME: u64 = 7 * 24 * 60 * 60;
 pub const MAX_CAPABILITY_USES: u32 = 100;
+pub const MAX_PERMISSION_DIFF_ENTRIES: u32 = 50;
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -232,6 +233,23 @@ const EV_RESUMED: Symbol = symbol_short!("ac_rz");
 const EV_OWNERSHIP_TRANSFER_PROPOSED: Symbol = symbol_short!("ac_op");
 const EV_OWNERSHIP_TRANSFER_ACCEPTED: Symbol = symbol_short!("ac_oa");
 const EV_OWNERSHIP_TRANSFER_CANCELLED: Symbol = symbol_short!("ac_oc");
+const EV_PERMISSION_DIFF: Symbol = symbol_short!("ac_pd");
+
+/// A single entry in a permission-diff report describing how a proposed
+/// role or policy change would alter effective access for one principal.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PermissionDiffEntry {
+    pub principal: Address,
+    pub role: Symbol,
+    /// `true` when the change would grant the role, `false` when it removes it.
+    pub grants: bool,
+    /// `true` when the principal already holds the role in effect right now.
+    pub currently_held: bool,
+    /// `true` when applying the change would actually alter the principal's
+    /// effective access (i.e. the change is not a no-op).
+    pub effective_change: bool,
+}
 
 // ---------------------------------------------------------------------------
 // Contract
@@ -288,6 +306,60 @@ impl AccessControlContract {
         env.events()
             .publish((EV_ROLE_CREATED,), (symbol_short!("super"), super_admin));
         Ok(())
+    }
+
+    // -----------------------------------------------------------------------
+    // Permission-diff preview
+    // -----------------------------------------------------------------------
+
+    /// Build a read-only permission-diff report describing how a proposed set
+    /// of role grants/revocations would change effective access, without
+    /// mutating any state.  Intended to be called before `grant_role` /
+    /// `revoke_role` / policy changes so operators can review the impact.
+    ///
+    /// Each `(principal, role, grants)` tuple yields one entry.  Entries are
+    /// returned in input order.  Validation failures (unknown role, empty
+    /// change set, oversized change set) are reported as errors and produce no
+    /// partial report.
+    ///
+    /// # Authorization
+    /// Requires the `ManageMaintainers` action permission so the report itself
+    /// cannot be used to probe role membership by unauthorized parties.
+    pub fn preview_permission_diff(
+        env: Env,
+        caller: Address,
+        changes: Vec<(Address, Symbol, bool)>,
+    ) -> Result<Vec<PermissionDiffEntry>, AccessControlError> {
+        require_action(&env, &caller, &Action::ManageMaintainers)?;
+        if changes.is_empty() {
+            return Err(AccessControlError::InvalidRole);
+        }
+        if changes.len() > MAX_PERMISSION_DIFF_ENTRIES {
+            return Err(AccessControlError::InvalidRole);
+        }
+        let now = env.ledger().timestamp();
+        let mut report: Vec<PermissionDiffEntry> = Vec::new(&env);
+        for (principal, role, grants) in changes.iter() {
+            if !is_role_registered(&env, &role) {
+                return Err(AccessControlError::RoleNotFound);
+            }
+            let currently_held = Self::has_role(env.clone(), role.clone(), principal.clone());
+            // A grant is a no-op when already held; a revoke is a no-op when not held.
+            let effective_change = if grants { !currently_held } else { currently_held };
+            let _ = now;
+            report.push_back(PermissionDiffEntry {
+                principal,
+                role,
+                grants,
+                currently_held,
+                effective_change,
+            });
+        }
+        env.events().publish(
+            (EV_PERMISSION_DIFF,),
+            (caller, report.len()),
+        );
+        Ok(report)
     }
 
     // -----------------------------------------------------------------------

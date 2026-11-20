@@ -49,6 +49,7 @@ use soroban_sdk::{
 
 pub mod api;
 pub mod correlation;
+pub mod export;
 pub mod storage;
 mod transitions;
 pub mod types;
@@ -1419,3 +1420,7 @@ mod tests;
 /// `tests` so it can be run in isolation via `scripts/profile-budget.sh`.
 #[cfg(test)]
 mod profile_budget;
+
+
+#[cfg(test)]
+mod aid_export_test;

@@ -3,6 +3,7 @@ pub mod abuse;
 pub mod accessibility;
 pub mod allowlist;
 pub mod analytics;
+pub mod admin_config_audit;
 pub mod audit_ledger;
 pub mod auth;
 pub mod backfill;
@@ -80,8 +81,12 @@ pub mod rollout_guard;
 pub mod retention;
 pub mod sanitize;
 pub mod scan_guard;
+pub mod schema_evolution;
 pub mod semantic;
 pub mod session_revocation;
+pub mod signed_audit_receipt;
+pub mod dry_run_repair;
+pub mod synthetic_monitoring;
 pub mod side_effect_checkpoint;
 pub mod snapshot;
 pub mod snapshot_restore;
@@ -95,6 +100,16 @@ pub mod utils;
 pub mod versioned_replay;
 pub mod webhook;
 pub mod workflow_correlation;
+pub mod workflow_failure_injection;
+pub mod user_facing_degraded_status;
+pub mod upgrade_compat_snapshot;
+pub mod event_pagination;
+pub mod treasury_conservation;
+pub mod auth_fingerprint;
+#[cfg(test)]
+pub mod test_boundary_properties;
+#[cfg(test)]
+pub mod test_schema_compat;
 // Re-export the most commonly-needed items at crate root for ergonomic use.
 pub use abuse::{
     assess_high_impact_abuse, evaluate_high_impact_abuse, get_abuse_policy, get_abuse_state,
@@ -136,9 +151,9 @@ ownership_transfer_time_remaining, propose_ownership_transfer, reject_ownership_
 require_admin, require_not_paused, require_permission, role_for_permission, set_admin,
 PendingOwnershipTransfer, Permission, Role,
 };
-pub use admin_config_audit::{
-    compute_evidence_hash, get_config_evidence, latest_config_version, record_config_change,
-    rollback_config_change, verify_config_evidence, AdminConfigEvidence, ConfigEvidenceStatus,
+pub use config_audit::{
+    apply_sensitive_config_change, get_config_audit_evidence, get_sensitive_config_value,
+    rollback_config_change, verify_config_audit_chain, ConfigAuditEvidence, ConfigAuditError,
 };
 pub use session_revocation::{
     derive_token_id, get_session_token, get_subject_security_state, issue_session_token,
